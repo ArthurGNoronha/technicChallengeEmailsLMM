@@ -14,7 +14,7 @@ def analyzeEmail(email_content):
     Analise o seguinte e-mail e forneça as seguintes informações em formato JSON:
     1.  'type': Classifique o e-mail como 'Produtivo' (requer uma ação) ou 'Improdutivo' (não requer ação imediata).
     2.  'summary': Um resumo conciso do e-mail em no máximo três frases.
-    3.  'key_points': Uma lista dos pontos mais importantes.
+    3.  'keyPoints': Uma lista dos pontos mais importantes.
     4.  'urgency': Uma pontuação de urgência de 1 (menos urgente) a 5 (mais urgente).
 
     E-mail:
