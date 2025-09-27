@@ -1,0 +1,25 @@
+from flask import Flask, jsonify
+import os
+from routes import api
+from flask_cors import CORS
+
+app = Flask(__name__, static_folder='../frontend', static_url_path='/')
+CORS(app)
+
+app.register_blueprint(api, url_prefix='/api')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    return app.send_static_file(path)
+
+@app.route('/')
+def serve_frontend():
+    return app.send_static_file('index.html')
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'healthy'}), 200
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, port=port)
