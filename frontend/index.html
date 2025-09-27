@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/toastAlert.css">
+    <title>Análise de Email</title>
+</head>
+<body>
+    <main>
+        <h1>Analisador de Emails com IA</h1>
+        <form id="email-form">
+            <textarea name="text" id="email-input" placeholder="Digite seu Email aqui."></textarea>
+            <label for="file-input">Anexar arquivo:</label>
+            <input type="file" name="file" id="file-input" accept=".txt,.pdf">
+            <button type="submit">Analisar Email</button>
+        </form>
+
+        <div id="resultsSection" class="hidden">
+            <hr>
+            <h2>Análise: </h2>
+            <div id="analysisOutput"></div>
+
+            <h2>Respostas Sugeridas:</h2>
+            <ul id="replyOutput"></ul>
+        </div>
+    </main>
+    <script src="assets/js/scripts.js"></script>
+    <script src="assets/js/toastAlert.js"></script>
+</body>
+</html>
