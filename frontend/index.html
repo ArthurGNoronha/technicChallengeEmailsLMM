@@ -14,16 +14,39 @@
             <textarea name="text" id="email-input" placeholder="Digite seu Email aqui."></textarea>
             <label for="file-input">Anexar arquivo:</label>
             <input type="file" name="file" id="file-input" accept=".txt,.pdf">
+
+            <div id="tone-selector">
+                <label>Selecione o tom da resposta:</label>
+                <div>
+                    <input type="radio" id="tone-professional" name="tone" value="Profissional" checked>
+                    <label for="tone-professional">Profissional</label>
+                </div>
+                <div>
+                    <input type="radio" id="tone-friendly" name="tone" value="Amigável">
+                    <label for="tone-friendly">Amigável</label>
+                </div>
+                <div>
+                    <input type="radio" id="tone-direct" name="tone" value="Direto">
+                    <label for="tone-direct">Direto</label>
+                </div>
+            </div>
+
             <button type="submit">Analisar Email</button>
         </form>
 
         <div id="resultsSection" class="hidden">
             <hr>
-            <h2>Análise: </h2>
+            <h2>Análise</h2>
             <div id="analysisOutput"></div>
+            <h2>Resposta Sugerida</h2>
+            <div id="replyOutput"></div>
+        </div>
 
-            <h2>Respostas Sugeridas:</h2>
-            <ul id="replyOutput"></ul>
+        <div id="historySection">
+            <hr>
+            <h2>Histórico</h2>
+            <ul id="historyList">
+            </ul>
         </div>
     </main>
     <script src="assets/js/scripts.js"></script>

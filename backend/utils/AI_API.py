@@ -7,7 +7,7 @@ load_dotenv()
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-model = genai.GenerativeModel('models/gemini-2.5-pro')
+model = genai.GenerativeModel('models/gemini-2.0-flash')
 
 def analyzeEmail(email_content):
     prompt = f"""
@@ -31,11 +31,11 @@ def analyzeEmail(email_content):
         print(f"Erro ao analisar e-mail: {e}")
         return None
 
-def generateReply(email_content, type):
+def generateReply(email_content, type, tone="Profissional"):
     if type == 'Improdutivo':
         return "Obrigado pela sua mensagem! Agradecemos o seu contato."
     prompt = f"""
-    Com base no e-mail abaixo, gere uma lista de 3 sugestões de respostas curtas e profissionais.
+    Com base no e-mail abaixo, gere uma lista de 3 sugestões de respostas curtas e com um tom '{tone}'.
     Retorne o resultado como um array JSON de strings, e nada mais. Exemplo de formato: ["sugestão 1", "sugestão 2", "sugestão 3"]
 
     E-mail:
