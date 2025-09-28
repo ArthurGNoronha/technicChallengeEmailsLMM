@@ -89,6 +89,73 @@ hr {
     background-color: var(--primary-hover-color);
 }
 
+.file-input-container {
+    margin-bottom: 15px;
+}
+
+.file-selection {
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+}
+
+#file-name {
+    margin-left: 0;
+    font-style: italic;
+    color: var(--secondary-text-color);
+    flex-grow: 1;
+}
+
+#remove-file {
+    background-color: var(--error-color);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2em;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#remove-file:hover {
+    background-color: #c9302c;
+}
+
+#file-input {
+    color: transparent;
+    width: 150px;
+}
+
+#file-input::-webkit-file-upload-button,
+#file-input::file-selector-button {
+    visibility: visible;
+    color: var(--text-color);
+    background-color: #f1f1f1;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 5px 10px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.file-selection {
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+}
+
+#file-name {
+    margin-left: 0;
+    font-style: italic;
+    color: var(--secondary-text-color);
+    flex-grow: 1;
+}
+
 #tone-selector {
     padding: 10px;
     border: 1px solid var(--border-color);
@@ -169,10 +236,50 @@ hr {
     background-color: #f1f1f1;
 }
 
+
+.edit-classification {
+    width: 100px;
+    text-align: center;
+    background-color: #e3e9f7;
+    color: var(--primary-color);
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    transition: background-color 0.2s ease-in-out;
+    position: relative;
+    margin-right: 0;
+}
+
+.edit-urgency:hover {
+    background-color: #e9ecef;
+    cursor: pointer;
+}
+
+.edit-classification:hover {
+    background-color: #d1d9ec;
+    cursor: pointer;
+}
+
+.edit-classification:hover::after {
+    content: ' ✎';
+    font-size: 0.9em;
+}
+
 .history-summary {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    padding: 5px 0;
+    gap: 50px;
+}
+
+.history-summary select {
+    padding: 2px 5px;
+    border-radius: 5px;
+    border: 1px solid var(--primary-color);
+    font-size: 0.9em;
+    font-family: var(--font-family);
+    outline: none;
 }
 
 .history-details {
@@ -191,16 +298,12 @@ hr {
     font-weight: bold;
     color: var(--primary-color);
     transition: transform 0.3s ease;
+    margin-left: auto;
+    padding-left: 15px;
 }
 
 #historyList li.expanded .expand-icon {
     transform: rotate(45deg);
-}
-
-
-#historyList li strong {
-    color: var(--primary-color);
-    margin-right: 10px;
 }
 
 #historyList li span {
@@ -214,7 +317,7 @@ hr {
     color: white;
     padding: 3px 8px;
     border-radius: 12px;
-    margin: 0 10px;
+    margin: 0 15px;
     min-width: 20px;
     text-align: center;
 }
@@ -225,8 +328,27 @@ hr {
 .urgency-4 { background-color: #e67e22; }
 .urgency-5 { background-color: #e74c3c; }
 
+.delete-history {
+    background-color: var(--error-color);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-top: 15px;
+    display: block;
+    margin-left: auto;
+    transition: background-color 0.2s;
+}
+
+.delete-history:hover {
+    background-color: #c9302c;
+}
+
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 p[style*="color: red;"] {

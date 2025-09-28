@@ -46,3 +46,29 @@ def getHistory(limit = 10):
     conn.close()
 
     return [dict(rec) for rec in recs]
+
+def deleteHistoryEntry(entryId):
+    conn = getDBConnection()
+    conn.execute('DELETE FROM history WHERE id = ?', (entryId,))
+    conn.commit()
+    conn.close()
+
+def patchHistoryEntry(entryId, updates):
+    conn = getDBConnection()
+    fields = []
+    values = []
+    for key, value in updates.items():
+        if key in ['classification', 'urgency']:
+            fields.append(f"{key} = ?")
+            values.append(value)
+
+        if not fields:
+            conn.close()
+            return False
+    
+    query = f"UPDATE history SET {', '.join(fields)} WHERE id = ?"
+    values.append(entryId)
+    conn.execute(query, tuple(values))
+    conn.commit()
+    conn.close()
+    return True

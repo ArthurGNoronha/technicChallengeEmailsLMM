@@ -1,4 +1,7 @@
-document.addEventListener('DOMContentLoaded', fetchHistory);
+document.addEventListener('DOMContentLoaded', () => {
+    fetchHistory();
+    toggleResults();
+});
 
 const emailForm = document.getElementById('email-form');
 const resultsSection = document.getElementById('resultsSection');
@@ -6,6 +9,29 @@ const analysisOutput = document.getElementById('analysisOutput');
 const replyOutput = document.getElementById('replyOutput');
 const spinner = '<div class="spinner-container"><div class="spinner"></div></div>';
 const historyList = document.getElementById('historyList');
+
+const fileInput = document.getElementById('file-input');
+const fileName = document.getElementById('file-name');
+const removeFileBtn = document.getElementById('remove-file');
+
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+        fileName.textContent = fileInput.files[0].name;
+        removeFileBtn.classList.remove('hidden');
+    } else {
+        fileName.textContent = 'Nenhum arquivo selecionado';
+        removeFileBtn.classList.add('hidden');
+    }
+    toggleResults();
+});
+
+removeFileBtn.addEventListener('click', () => {
+    fileInput.value = '';
+    fileName.textContent = 'Nenhum arquivo selecionado';
+    removeFileBtn.classList.add('hidden');
+    toastAlert('Arquivo removido', 'success');
+    toggleResults();
+});
 
 emailForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -17,6 +43,7 @@ emailForm.addEventListener('submit', async (e) => {
 
     if(!text.trim() && file.size===0) {
         toastAlert('Por favor, insira um texto ou um arquivo.', 'warn');
+        resultsSection.classList.add('hidden');
         return;
     }
 
@@ -100,8 +127,8 @@ async function fetchHistory() {
             
             li.innerHTML = `
                 <div class="history-summary">
-                    <strong>${item.classification}</strong>
-                    <span class="urgency-${item.urgency} urgency-badge">${item.urgency}</span>
+                    <strong class="edit-classification">${item.classification}</strong>
+                    <span class="urgency-${item.urgency} urgency-badge edit-urgency">${item.urgency}</span>
                     <span>${item.content.substring(0, 50)}...</span>
                     <span class="expand-icon">+</span>
                 </div>
@@ -110,6 +137,8 @@ async function fetchHistory() {
                     <p><strong>Pontos-chave:</strong></p>
                     <ul>${keyPointsHTML}</ul>
                     <p><strong>Urgência:</strong> ${item.urgency}</p>
+                    <p><strong>Data:</strong> ${new Date(item.timestamp).toLocaleString()}</p>
+                    <button class="delete-history" data-id="${item.id}">Remover do Histórico</button>
                 </div>
             `;
             historyList.appendChild(li);
@@ -120,13 +149,113 @@ async function fetchHistory() {
     }
 }
 
-historyList.addEventListener('click', (e) => {
-    const clickedLi = e.target.closest('li');
-    if(!clickedLi) return;
+function toggleResults() {
+    const textValue = document.getElementById('email-input').value.trim();
+    const hasFile = fileInput.files && fileInput.files.length > 0;
 
-    const detailsView = clickedLi.querySelector('.history-details');
-    if(!detailsView) return;
+    if (!textValue && !hasFile) {
+        resultsSection.classList.add('hidden');
+    }
+}
 
-    detailsView.classList.toggle('hidden');
-    clickedLi.classList.toggle('expanded');
+document.getElementById('email-input').addEventListener('input', toggleResults);
+
+historyList.addEventListener('click', async (e) => {
+    const target = e.target;
+    const clickedLi = target.closest('li');
+    if (!clickedLi) return;
+
+    const entryId = clickedLi.dataset.historyId;
+
+    if (target.classList.contains('delete-history')) {
+        e.stopPropagation();
+        const entryId = e.target.dataset.id;
+
+        try {
+            const response = await fetch(`/api/history/${entryId}`, {
+                method: 'DELETE'
+            });
+
+            if(!response.ok) throw new Error('Falha ao deletar a entrada do histórico');
+            toastAlert('Email deletado com sucesso!', 'success');
+            clickedLi.style.transition = 'opacity 0.9s ease';
+            clickedLi.style.opacity = '0';
+            setTimeout(() => clickedLi.remove(), 500);
+
+        } catch(error) {
+            console.error('Erro ao deletar a entrada do histórico:', error);
+            toastAlert('Erro ao deletar a entrada do histórico. Tente novamente.', 'error');
+        }
+        return;
+    }
+
+    if (clickedLi.querySelector('select')) {
+        return;
+    }
+
+    let originalElement = null;
+    let selectElement = null;
+    let fieldToUpdate = '';
+
+    if (target.classList.contains('edit-classification')) {
+        originalElement = target;
+        fieldToUpdate = 'classification';
+        selectElement = document.createElement('select');
+        selectElement.innerHTML = `
+            <option value="Produtivo" ${target.textContent === 'Produtivo' ? 'selected' : ''}>Produtivo</option>
+            <option value="Improdutivo" ${target.textContent === 'Improdutivo' ? 'selected' : ''}>Improdutivo</option>
+        `;
+    }
+    else if (target.classList.contains('edit-urgency')) {
+        originalElement = target;
+        fieldToUpdate = 'urgency';
+        selectElement = document.createElement('select');
+        let options = '';
+        for (let i = 1; i <= 5; i++) {
+            options += `<option value="${i}" ${target.textContent == i ? 'selected' : ''}>${i}</option>`;
+        }
+        selectElement.innerHTML = options;
+    }
+
+    if (originalElement && selectElement) {
+        e.stopPropagation();
+
+        originalElement.replaceWith(selectElement);
+        selectElement.focus();
+
+        const revertUI = () => selectElement.replaceWith(originalElement);
+
+        selectElement.addEventListener('change', async () => {
+            const newValue = selectElement.value;
+            try {
+                const response = await fetch(`/api/history/${entryId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [fieldToUpdate]: newValue })
+                });
+                if (!response.ok) throw new Error('Falha ao salvar');
+                
+                toastAlert('Atualizado com sucesso!', 'success');
+                await fetchHistory();
+            } catch (error) {
+                console.error('Erro ao atualizar:', error);
+                toastAlert('Erro ao salvar. Tente novamente.', 'error');
+                revertUI();
+            }
+        });
+
+        selectElement.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (document.body.contains(selectElement)) {
+                    revertUI();
+                }
+            }, 200);
+        });
+    }
+    else {
+        const detailsView = clickedLi.querySelector('.history-details');
+        if (!detailsView) return;
+        detailsView.classList.toggle('hidden');
+        clickedLi.classList.toggle('expanded');
+    }
 });

@@ -12,8 +12,14 @@
         <h1>Analisador de Emails com IA</h1>
         <form id="email-form">
             <textarea name="text" id="email-input" placeholder="Digite seu Email aqui."></textarea>
-            <label for="file-input">Anexar arquivo:</label>
-            <input type="file" name="file" id="file-input" accept=".txt,.pdf">
+            <div class="file-input-container">
+                <label for="file-input">Anexar arquivo:</label>
+                <div class="file-selection">
+                    <input type="file" name="file" id="file-input" accept=".txt,.pdf">
+                    <span id="file-name">Nenhum arquivo selecionado</span>
+                    <button type="button" id="remove-file" class="hidden">×</button>
+                </div>
+            </div>
 
             <div id="tone-selector">
                 <label>Selecione o tom da resposta:</label>

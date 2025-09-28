@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from utils.AI_API import analyzeEmail, generateReply
 from utils.extractor import extractText
 from utils.nlp import preprocessText
-from utils.database import addHistoryEntry, getHistory
+from utils.database import addHistoryEntry, getHistory, deleteHistoryEntry, patchHistoryEntry
 import json
 
 api = Blueprint('api', __name__)
@@ -75,3 +75,25 @@ def handleHistory():
     except Exception as e:
         print(f"Erro ao recuperar histórico: {e}")
         return jsonify({'error': 'Failed to retrieve history'}), 500
+    
+@api.route('/history/<int:entryId>', methods=['DELETE'])
+def handleDeleteHistoryEntry(entryId):
+    try:
+        deleteHistoryEntry(entryId)
+        return jsonify({'message': 'Entry deleted successfully'}), 200
+    except Exception as e:
+        print(f"Erro ao deletar entrada do histórico: {e}")
+        return jsonify({'error': 'Failed to delete history entry'}), 500
+
+@api.route('/history/<int:entryId>', methods=['PATCH'])
+def handlePatchHistoryEntry(entryId):
+    data = request.json
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    try:
+        patchHistoryEntry(entryId, data)
+        return jsonify({'message': 'Entry updated successfully'}), 200
+    except Exception as e:
+        print(f"Erro ao atualizar entrada do histórico: {e}")
+        return jsonify({'error': 'Failed to update history entry'}), 500
