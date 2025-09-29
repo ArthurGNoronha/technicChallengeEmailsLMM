@@ -61,7 +61,7 @@ Configuração / Deploy:
 ## Pré-requisitos
 
 1. Python 3.11 (ver [runtime.txt](runtime.txt))
-2. Chave válida Gemini API (`GEMINI_API_KEY`) disponível em: [https://aistudio.google.com/app/api-keys] (https://aistudio.google.com/app/api-keys)
+2. Chave válida Gemini API (`GEMINI_API_KEY`) disponível em: [https://aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys)
 3. Dependências:
    ```bash
    pip install -r requirements.txt
