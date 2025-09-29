@@ -122,7 +122,6 @@ emailForm.addEventListener('submit', async (e) => {
                 });
             });
             
-            // Substitua o event listener antigo por este
             document.querySelectorAll('.email-disabled').forEach(button => {
                 button.addEventListener('click', function() {
                     toastAlert('Nenhum e-mail do remetente fornecido. Adicione um e-mail para responder.', 'warn');
@@ -181,7 +180,13 @@ async function fetchHistory() {
                     <p><strong>Urgência:</strong> ${item.urgency}</p>
                     ${item.sender_email ? `<p><strong>Remetente:</strong> ${item.sender_email}</p>` : ''}
                     <p><strong>Data:</strong> ${new Date(item.timestamp).toLocaleString()}</p>
-                    <button class="delete-history" data-id="${item.id}">Remover do Histórico</button>
+                    <div class="history-actions">
+                        <button class="generate-responses" data-id="${item.id}" data-content="${encodeURIComponent(item.content)}" data-type="${item.classification}" data-email="${item.sender_email || ''}">
+                            Gerar respostas
+                        </button>
+                        <button class="delete-history" data-id="${item.id}">Remover do Histórico</button>
+                    </div>
+                    <div class="history-responses"></div>
                 </div>
             `;
             historyList.appendChild(li);
@@ -229,6 +234,97 @@ historyList.addEventListener('click', async (e) => {
             console.error('Erro ao deletar a entrada do histórico:', error);
             toastAlert('Erro ao deletar a entrada do histórico. Tente novamente.', 'error');
         }
+        return;
+    }
+
+    if (target.classList.contains('generate-responses')) {
+        e.stopPropagation();
+        
+        const content = decodeURIComponent(target.dataset.content);
+        const type = target.dataset.type;
+        const senderEmail = target.dataset.email;
+        
+        const responsesContainer = clickedLi.querySelector('.history-responses');
+        
+        responsesContainer.innerHTML = spinner;
+        
+        try {
+            const tone = document.getElementById('tone-selector')?.value || 'professional';
+            
+            const replyResponse = await fetch('/api/reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: content,
+                    type: type,
+                    tone: tone
+                })
+            });
+
+            if (!replyResponse.ok) {
+                throw new Error('Falha ao gerar respostas');
+            }
+
+            const replyData = await replyResponse.json();
+            
+            if (Array.isArray(replyData.reply)) {
+                const suggestionsHTML = replyData.reply.map((suggestion, index) => {
+                    const mailtoBody = encodeURIComponent(suggestion);
+                    
+                    const emailOptions = senderEmail 
+                        ? `<div class="email-options">
+                                <a href="mailto:${senderEmail}?body=${mailtoBody}" class="email-btn">Cliente de Email</a>
+                                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=${senderEmail}&body=${mailtoBody}" 
+                                   target="_blank" class="email-btn gmail-btn">Gmail</a>
+                                <a href="https://outlook.live.com/mail/0/deeplink/compose?to=${senderEmail}&body=${mailtoBody}" 
+                                   target="_blank" class="email-btn outlook-btn">Outlook</a>
+                           </div>`
+                        : `<button type="button" class="email-btn email-disabled">Responder por E-mail</button>`;
+                    
+                    return `
+                        <li>
+                            <p>${suggestion}</p>
+                            <div class="reply-actions">
+                                <button class="copy-btn" data-text="${encodeURIComponent(suggestion)}">Copiar</button>
+                                ${emailOptions}
+                            </div>
+                        </li>
+                    `;
+                }).join('');
+                
+                responsesContainer.innerHTML = `
+                    <h4>Respostas Sugeridas:</h4>
+                    <ul class="reply-suggestions">${suggestionsHTML}</ul>
+                `;
+                
+                responsesContainer.querySelectorAll('.copy-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const text = decodeURIComponent(this.dataset.text);
+                        
+                        navigator.clipboard.writeText(text).then(() => {
+                            toastAlert('Resposta copiada!', 'success');
+                        }).catch(err => {
+                            console.error('Erro ao copiar:', err);
+                            toastAlert('Falha ao copiar texto.', 'error');
+                        });
+                    });
+                });
+                
+                responsesContainer.querySelectorAll('.email-disabled').forEach(button => {
+                    button.addEventListener('click', function() {
+                        toastAlert('Nenhum e-mail do remetente fornecido. Adicione um e-mail para responder.', 'warn');
+                    });
+                });
+            } else {
+                responsesContainer.innerHTML = `<p>${replyData.reply}</p>`;
+            }
+            
+        } catch (error) {
+            console.error('Erro ao gerar respostas:', error);
+            responsesContainer.innerHTML = '<p class="error">Erro ao gerar respostas. Tente novamente.</p>';
+            toastAlert('Erro ao gerar respostas', 'error');
+        }
+        
         return;
     }
 

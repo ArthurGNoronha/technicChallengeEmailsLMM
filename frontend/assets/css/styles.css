@@ -328,6 +328,35 @@ hr {
 .urgency-4 { background-color: #e67e22; }
 .urgency-5 { background-color: #e74c3c; }
 
+.history-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    justify-content: flex-end;
+}
+
+.generate-responses {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.generate-responses:hover {
+    background-color: var(--primary-hover-color);
+}
+
+.history-responses {
+    margin-top: 15px;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 15px;
+}
+
 .delete-history {
     background-color: var(--error-color);
     color: white;
