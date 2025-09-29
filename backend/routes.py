@@ -26,20 +26,29 @@ def getContent():
 
 @api.route('/analyze', methods=['POST'])
 def handleAnalyze():
+    
     emailContent = getContent()
     if not emailContent:
+        print("[handleAnalyze] ERRO: Nenhum conteúdo fornecido")
         return jsonify({'error': 'No content provided'}), 400
     
-    sender_email = request.form.get('senderEmail', '')
+    
+    sender_email = None
+    if 'senderEmail' in request.form and request.form['senderEmail'].strip():
+        sender_email = request.form['senderEmail'].strip()
     
     preprocessedContent = preprocessText(emailContent)
+    
     analysisText = analyzeEmail(preprocessedContent)
+    
     if not analysisText:
+        print("[handleAnalyze] ERRO: Falha na análise do e-mail (resposta vazia)")
         return jsonify({'error': 'Failed to analyze email'}), 500
     
     try:
         start = analysisText.find('{')
         end = analysisText.rfind('}') + 1
+        
         if start == -1 or end == 0:
             raise ValueError("JSON não encontrado na resposta da IA")
 
@@ -49,13 +58,18 @@ def handleAnalyze():
 
         analysisData['originalContent'] = emailContent
 
-        analysisData['sender_email'] = sender_email
+        if sender_email:
+            analysisData['sender_email'] = sender_email
         
-        addHistoryEntry(emailContent, analysisData, sender_email)
+        try:
+            addHistoryEntry(emailContent, analysisData, sender_email)
+        except Exception as db_error:
+            print(f"[handleAnalyze] ERRO ao salvar no histórico: {db_error}")
 
     except (ValueError, json.JSONDecodeError) as e:
-        print(f"Erro ao processar resposta da IA: {e}")
         return jsonify({'error': 'Formato de resposta da IA inválido.'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Erro inesperado: {str(e)}'}), 500
 
     return jsonify(analysisData)
 

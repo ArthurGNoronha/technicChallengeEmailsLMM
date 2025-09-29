@@ -14,6 +14,9 @@ const fileInput = document.getElementById('file-input');
 const fileName = document.getElementById('file-name');
 const removeFileBtn = document.getElementById('remove-file');
 
+let isAnalyzing = false;
+let isGeneratingResponses = false;
+
 fileInput.addEventListener('change', () => {
     if (fileInput.files.length > 0) {
         fileName.textContent = fileInput.files[0].name;
@@ -36,6 +39,13 @@ removeFileBtn.addEventListener('click', () => {
 emailForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    const submitButton = emailForm.querySelector('button[type="submit"]');
+    if (isAnalyzing) return;
+    
+    isAnalyzing = true;
+    submitButton.disabled = true;
+    submitButton.innerHTML = 'Analisando...';
+
     const formData = new FormData(emailForm);
     const text = formData.get('text');
     const file = formData.get('file');
@@ -44,6 +54,9 @@ emailForm.addEventListener('submit', async (e) => {
     if(!text.trim() && file.size===0) {
         toastAlert('Por favor, insira um texto ou um arquivo.', 'warn');
         resultsSection.classList.add('hidden');
+        isAnalyzing = false;
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Analisar Email';
         return;
     }
 
@@ -67,70 +80,13 @@ emailForm.addEventListener('submit', async (e) => {
             <p><strong>Urgência:</strong> ${analyzeData.urgency}</p>
         `;
 
-        replyOutput.innerHTML = spinner;
-
-        const replyResponse = await fetch('/api/reply', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email: analyzeData.originalContent, 
-                type: analyzeData.type,
-                tone: tone
-            })
-        });
-
-        const replyData = await replyResponse.json();
-        if(!replyResponse.ok) throw new Error(replyData.error || 'A geração da resposta falhou');
-
-        if (Array.isArray(replyData.reply)) {
-            const suggestionsHTML = replyData.reply.map((suggestion, index) => {
-                const mailtoBody = encodeURIComponent(suggestion);
-                const senderEmail = analyzeData.sender_email || '';
-                
-                const emailOptions = senderEmail 
-                    ? `<div class="email-options">
-                            <a href="mailto:${senderEmail}?body=${mailtoBody}" class="email-btn">Cliente de Email</a>
-                            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=${senderEmail}&body=${mailtoBody}" 
-                               target="_blank" class="email-btn gmail-btn">Gmail</a>
-                            <a href="https://outlook.live.com/mail/0/deeplink/compose?to=${senderEmail}&body=${mailtoBody}" 
-                               target="_blank" class="email-btn outlook-btn">Outlook</a>
-                       </div>`
-                    : `<button type="button" class="email-btn email-disabled">Responder por E-mail</button>`;
-                
-                return `
-                    <li>
-                        <p>${suggestion}</p>
-                        <div class="reply-actions">
-                            <button class="copy-btn" data-suggestion="${index}" data-text="${encodeURIComponent(suggestion)}">Copiar</button>
-                            ${emailOptions}
-                        </div>
-                    </li>
-                `;
-            }).join('');
-            replyOutput.innerHTML = `<ul class="reply-suggestions">${suggestionsHTML}</ul>`;
-            
-            document.querySelectorAll('.copy-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const text = decodeURIComponent(this.dataset.text);
-                    
-                    navigator.clipboard.writeText(text).then(() => {
-                        toastAlert('Resposta copiada!', 'success');
-                    }).catch(err => {
-                        console.error('Erro ao copiar:', err);
-                        toastAlert('Falha ao copiar texto.', 'error');
-                    });
-                });
-            });
-            
-            document.querySelectorAll('.email-disabled').forEach(button => {
-                button.addEventListener('click', function() {
-                    toastAlert('Nenhum e-mail do remetente fornecido. Adicione um e-mail para responder.', 'warn');
-                });
-            });
-            
-        } else {
-            replyOutput.innerHTML = `<p>${replyData.reply}</p>`;
-        }
+        await generateAnswers(
+            analyzeData.originalContent,
+            analyzeData.type,
+            tone,
+            replyOutput,
+            analyzeData.sender_email || ''
+        );
         
         await fetchHistory();
 
@@ -143,6 +99,10 @@ emailForm.addEventListener('submit', async (e) => {
         } else {
             replyOutput.innerHTML = `<p style="color: red;">Ocorreu um erro! Tente novamente mais tarde.</p>`;
         }
+    } finally {
+        isAnalyzing = false;
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Analisar Email';
     }
 });
 
@@ -206,6 +166,145 @@ function toggleResults() {
     }
 }
 
+async function generateAnswers(emailContent, emailType, tone, container, senderEmail = '', isHistory = false, buttonToDisable = null) {
+    if (buttonToDisable) {
+        buttonToDisable.disabled = true;
+        buttonToDisable.innerHTML = 'Gerando...';
+    }
+    
+    if (isHistory) {
+        isGeneratingResponses = true;
+    }
+    
+    container.innerHTML = spinner;
+    
+    try {
+        const requestData = {
+            email: emailContent,
+            type: emailType,
+            tone: tone
+        };
+        
+        const replyResponse = await fetch('/api/reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
+
+        if (!replyResponse.ok) {
+            let errorMsg = 'Falha ao gerar respostas';
+            try {
+                const errorData = await replyResponse.json();
+                errorMsg = errorData.error || errorMsg;
+            } catch (e) {
+                console.error('[generateAnswers] Não foi possível obter detalhes do erro');
+            }
+            throw new Error(errorMsg);
+        }
+
+        const replyData = await replyResponse.json();
+        
+        const title = isHistory ? '<h4>Respostas Sugeridas:</h4>' : '';
+        
+        if (!replyData || replyData === undefined) {
+            console.error('[generateAnswers] replyData é undefined ou null');
+            throw new Error('Dados de resposta inválidos');
+        }
+        
+        if (!('reply' in replyData)) {
+            console.error('[generateAnswers] replyData não contém o campo reply');
+            throw new Error('Formato de resposta inválido');
+        }
+        
+        let responseHTML = '';
+        
+        let suggestionsArray = [];
+        
+        if (Array.isArray(replyData.reply)) {
+            suggestionsArray = replyData.reply;
+        } else {
+            suggestionsArray = [String(replyData.reply)];
+        }
+        
+        if (suggestionsArray.length === 0) {
+            responseHTML = `${title}<p>Nenhuma sugestão de resposta disponível.</p>`;
+        } else {
+            const suggestionsHTML = suggestionsArray.map(suggestion => {
+                if (typeof suggestion !== 'string') {
+                    console.warn('[generateAnswers] Item não é uma string:', suggestion);
+                    suggestion = String(suggestion);
+                }
+                
+                const mailtoBody = encodeURIComponent(suggestion);
+                
+                const emailOptions = senderEmail 
+                    ? `<div class="email-options">
+                        <a href="mailto:${senderEmail}?body=${mailtoBody}" class="email-btn">Cliente de Email</a>
+                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=${senderEmail}&body=${mailtoBody}" 
+                           target="_blank" class="email-btn gmail-btn">Gmail</a>
+                        <a href="https://outlook.live.com/mail/0/deeplink/compose?to=${senderEmail}&body=${mailtoBody}" 
+                           target="_blank" class="email-btn outlook-btn">Outlook</a>
+                       </div>`
+                    : `<button type="button" class="email-btn email-disabled">Responder por E-mail</button>`;
+                
+                return `
+                    <li>
+                        <p>${suggestion}</p>
+                        <div class="reply-actions">
+                            <button class="copy-btn" data-text="${encodeURIComponent(suggestion)}">Copiar</button>
+                            ${emailOptions}
+                        </div>
+                    </li>
+                `;
+            }).join('');
+            
+            responseHTML = `${title}<ul class="reply-suggestions">${suggestionsHTML}</ul>`;
+        }
+        
+        container.innerHTML = responseHTML;
+        
+        container.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                try {
+                    const text = decodeURIComponent(this.dataset.text);
+                    
+                    navigator.clipboard.writeText(text).then(() => {
+                        toastAlert('Resposta copiada!', 'success');
+                    }).catch(err => {
+                        console.error('[generateAnswers] Erro ao copiar:', err);
+                        toastAlert('Falha ao copiar texto.', 'error');
+                    });
+                } catch (e) {
+                    console.error('[generateAnswers] Erro ao processar texto para copiar:', e);
+                    toastAlert('Erro ao processar texto', 'error');
+                }
+            });
+        });
+        
+        container.querySelectorAll('.email-disabled').forEach(button => {
+            button.addEventListener('click', function() {
+                toastAlert('Nenhum e-mail do remetente fornecido. Adicione um e-mail para responder.', 'warn');
+            });
+        });
+        
+        return replyData;
+    } catch (error) {
+        console.error('[generateAnswers] Erro completo:', error);
+        container.innerHTML = '<p class="error">Erro ao gerar respostas. Tente novamente.</p>';
+        toastAlert(`Erro ao gerar respostas: ${error.message}`, 'error');
+        return null;
+    } finally {
+        if (buttonToDisable) {
+            buttonToDisable.disabled = false;
+            buttonToDisable.innerHTML = 'Gerar respostas';
+        }
+        
+        if (isHistory) {
+            isGeneratingResponses = false;
+        }
+    }
+}
+
 document.getElementById('email-input').addEventListener('input', toggleResults);
 
 historyList.addEventListener('click', async (e) => {
@@ -240,90 +339,16 @@ historyList.addEventListener('click', async (e) => {
     if (target.classList.contains('generate-responses')) {
         e.stopPropagation();
         
+        if (isGeneratingResponses) return;
+        
         const content = decodeURIComponent(target.dataset.content);
         const type = target.dataset.type;
         const senderEmail = target.dataset.email;
+        const tone = document.getElementById('tone-selector')?.value || 'professional';
         
         const responsesContainer = clickedLi.querySelector('.history-responses');
         
-        responsesContainer.innerHTML = spinner;
-        
-        try {
-            const tone = document.getElementById('tone-selector')?.value || 'professional';
-            
-            const replyResponse = await fetch('/api/reply', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: content,
-                    type: type,
-                    tone: tone
-                })
-            });
-
-            if (!replyResponse.ok) {
-                throw new Error('Falha ao gerar respostas');
-            }
-
-            const replyData = await replyResponse.json();
-            
-            if (Array.isArray(replyData.reply)) {
-                const suggestionsHTML = replyData.reply.map((suggestion, index) => {
-                    const mailtoBody = encodeURIComponent(suggestion);
-                    
-                    const emailOptions = senderEmail 
-                        ? `<div class="email-options">
-                                <a href="mailto:${senderEmail}?body=${mailtoBody}" class="email-btn">Cliente de Email</a>
-                                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=${senderEmail}&body=${mailtoBody}" 
-                                   target="_blank" class="email-btn gmail-btn">Gmail</a>
-                                <a href="https://outlook.live.com/mail/0/deeplink/compose?to=${senderEmail}&body=${mailtoBody}" 
-                                   target="_blank" class="email-btn outlook-btn">Outlook</a>
-                           </div>`
-                        : `<button type="button" class="email-btn email-disabled">Responder por E-mail</button>`;
-                    
-                    return `
-                        <li>
-                            <p>${suggestion}</p>
-                            <div class="reply-actions">
-                                <button class="copy-btn" data-text="${encodeURIComponent(suggestion)}">Copiar</button>
-                                ${emailOptions}
-                            </div>
-                        </li>
-                    `;
-                }).join('');
-                
-                responsesContainer.innerHTML = `
-                    <h4>Respostas Sugeridas:</h4>
-                    <ul class="reply-suggestions">${suggestionsHTML}</ul>
-                `;
-                
-                responsesContainer.querySelectorAll('.copy-btn').forEach(button => {
-                    button.addEventListener('click', function() {
-                        const text = decodeURIComponent(this.dataset.text);
-                        
-                        navigator.clipboard.writeText(text).then(() => {
-                            toastAlert('Resposta copiada!', 'success');
-                        }).catch(err => {
-                            console.error('Erro ao copiar:', err);
-                            toastAlert('Falha ao copiar texto.', 'error');
-                        });
-                    });
-                });
-                
-                responsesContainer.querySelectorAll('.email-disabled').forEach(button => {
-                    button.addEventListener('click', function() {
-                        toastAlert('Nenhum e-mail do remetente fornecido. Adicione um e-mail para responder.', 'warn');
-                    });
-                });
-            } else {
-                responsesContainer.innerHTML = `<p>${replyData.reply}</p>`;
-            }
-            
-        } catch (error) {
-            console.error('Erro ao gerar respostas:', error);
-            responsesContainer.innerHTML = '<p class="error">Erro ao gerar respostas. Tente novamente.</p>';
-            toastAlert('Erro ao gerar respostas', 'error');
-        }
+        await generateAnswers(content, type, tone, responsesContainer, senderEmail, true, target);
         
         return;
     }
@@ -344,8 +369,7 @@ historyList.addEventListener('click', async (e) => {
             <option value="Produtivo" ${target.textContent === 'Produtivo' ? 'selected' : ''}>Produtivo</option>
             <option value="Improdutivo" ${target.textContent === 'Improdutivo' ? 'selected' : ''}>Improdutivo</option>
         `;
-    }
-    else if (target.classList.contains('edit-urgency')) {
+    } else if (target.classList.contains('edit-urgency')) {
         originalElement = target;
         fieldToUpdate = 'urgency';
         selectElement = document.createElement('select');
@@ -390,8 +414,7 @@ historyList.addEventListener('click', async (e) => {
                 }
             }, 200);
         });
-    }
-    else {
+    } else {
         const detailsView = clickedLi.querySelector('.history-details');
         if (!detailsView) return;
         detailsView.classList.toggle('hidden');

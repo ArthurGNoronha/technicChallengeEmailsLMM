@@ -26,10 +26,48 @@ def analyzeEmail(email_content):
     """
     try:
         response = model.generate_content(prompt)
-        return response.text
+        text_response = response.text
+        
+        
+        start = text_response.find('{')
+        end = text_response.rfind('}') + 1
+        
+        if start == -1 or end == 0:
+            print("[analyzeEmail] ERRO: Não encontrou estrutura JSON na resposta")
+            return '''
+            {
+                "type": "Produtivo",
+                "summary": "Não foi possível analisar este e-mail automaticamente.",
+                "keyPoints": ["Erro na análise automática. Por favor, revise manualmente."],
+                "urgency": 3
+            }
+            '''
+            
+        json_str = text_response[start:end]
+        
+        try:
+            json.loads(json_str)
+            return text_response
+        except json.JSONDecodeError as e:
+            print(f"[analyzeEmail] ERRO: JSON inválido: {e}")
+            return '''
+            {
+                "type": "Produtivo",
+                "summary": "Não foi possível analisar este e-mail automaticamente.",
+                "keyPoints": ["Erro na análise automática. Por favor, revise manualmente."],
+                "urgency": 3
+            }
+            '''
     except Exception as e:
-        print(f"Erro ao analisar e-mail: {e}")
-        return None
+        print(f"[analyzeEmail] ERRO ao analisar e-mail: {e}")
+        return '''
+        {
+            "type": "Produtivo",
+            "summary": "Não foi possível analisar este e-mail automaticamente.",
+            "keyPoints": ["Erro na análise automática. Por favor, revise manualmente."],
+            "urgency": 3
+        }
+        '''
 
 def generateReply(email_content, type, tone="Profissional"):
     if type == 'Improdutivo':
