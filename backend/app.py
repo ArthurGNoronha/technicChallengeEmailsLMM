@@ -3,7 +3,7 @@ import os
 from routes import api
 from flask_cors import CORS
 from utils.database import initDB
-from utils.donwload_nltk import download_nltk_data
+from backend.utils.download_nltk import download_nltk_data
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='/')
 CORS(app)
