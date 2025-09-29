@@ -3,6 +3,7 @@ import os
 from routes import api
 from flask_cors import CORS
 from utils.database import initDB
+from nltk import download_ntlk_data
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='/')
 CORS(app)
@@ -10,6 +11,8 @@ CORS(app)
 app.register_blueprint(api, url_prefix='/api')
 
 initDB()
+
+download_ntlk_data()
 
 @app.route('/<path:path>')
 def serve_static(path):
@@ -25,4 +28,4 @@ def health_check():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, port=port)
+    app.run(host='0.0.0.0', debug=False, port=port)

@@ -1,6 +1,6 @@
 flask
 PyPDF2
 nltk
-dotenv
+python-dotenv
 google-generativeai
 flask-cors
