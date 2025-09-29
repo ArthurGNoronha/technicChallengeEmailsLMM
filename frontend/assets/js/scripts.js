@@ -350,6 +350,7 @@ historyList.addEventListener('click', async (e) => {
             clickedLi.style.transition = 'opacity 0.9s ease';
             clickedLi.style.opacity = '0';
             setTimeout(() => clickedLi.remove(), 500);
+            fetchHistory();
 
         } catch(error) {
             console.error('Erro ao deletar a entrada do histórico:', error);
