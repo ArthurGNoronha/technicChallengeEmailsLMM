@@ -3,7 +3,6 @@ import os
 from routes import api
 from flask_cors import CORS
 from utils.database import initDB
-from backend.utils.download_nltk import download_nltk_data
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='/')
 CORS(app)
@@ -11,7 +10,6 @@ CORS(app)
 app.register_blueprint(api, url_prefix='/api')
 
 initDB()
-download_nltk_data()
 
 @app.route('/<path:path>')
 def serve_static(path):
