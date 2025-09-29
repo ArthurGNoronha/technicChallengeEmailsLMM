@@ -4,3 +4,4 @@ nltk
 python-dotenv
 google-generativeai
 flask-cors
+gunicorn
