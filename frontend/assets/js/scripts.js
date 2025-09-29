@@ -17,6 +17,28 @@ const removeFileBtn = document.getElementById('remove-file');
 let isAnalyzing = false;
 let isGeneratingResponses = false;
 
+function formatDate(date) {
+    try {
+        const isoDateString = date.replace(' ', 'T');
+        const originalDate = new Date(isoDateString);
+        
+        const utcMinus3Date = new Date(originalDate);
+        utcMinus3Date.setHours(originalDate.getHours() - 3);
+        
+        return utcMinus3Date.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    } catch (error) {
+        console.error('Erro ao formatar data:', error);
+        return date;
+    }
+}
+
 fileInput.addEventListener('change', () => {
     if (fileInput.files.length > 0) {
         fileName.textContent = fileInput.files[0].name;
@@ -139,7 +161,7 @@ async function fetchHistory() {
                     <ul>${keyPointsHTML}</ul>
                     <p><strong>Urgência:</strong> ${item.urgency}</p>
                     ${item.sender_email ? `<p><strong>Remetente:</strong> ${item.sender_email}</p>` : ''}
-                    <p><strong>Data:</strong> ${new Date(item.timestamp).toLocaleString()}</p>
+                    <p><strong>Data:</strong> ${formatDate(item.timestamp)}</p>
                     <div class="history-actions">
                         <button class="generate-responses" data-id="${item.id}" data-content="${encodeURIComponent(item.content)}" data-type="${item.classification}" data-email="${item.sender_email || ''}">
                             Gerar respostas
