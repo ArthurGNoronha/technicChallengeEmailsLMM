@@ -1,1 +1,1 @@
-web: python -m backend.utils.download_nltk.py && gunicorn --pythonpath backend app:app
+web: python -m backend.utils.download_nltk && gunicorn --pythonpath backend app:app
