@@ -11,7 +11,11 @@
     <main>
         <h1>Analisador de Emails com IA</h1>
         <form id="email-form">
-            <textarea name="text" id="email-input" placeholder="Digite seu Email aqui."></textarea>
+            <textarea name="text" id="email-input" placeholder="Digite o email recebido aqui."></textarea>
+            <div class="sender-info">
+                <label for="sender-email">E-mail do Remetente (opcional):</label>
+                <input type="email" name="senderEmail" id="sender-email" placeholder="exemplo@email.com">
+            </div>
             <div class="file-input-container">
                 <label for="file-input">Anexar arquivo:</label>
                 <div class="file-selection">

@@ -30,6 +30,8 @@ def handleAnalyze():
     if not emailContent:
         return jsonify({'error': 'No content provided'}), 400
     
+    sender_email = request.form.get('senderEmail', '')
+    
     preprocessedContent = preprocessText(emailContent)
     analysisText = analyzeEmail(preprocessedContent)
     if not analysisText:
@@ -47,7 +49,9 @@ def handleAnalyze():
 
         analysisData['originalContent'] = emailContent
 
-        addHistoryEntry(emailContent, analysisData)
+        analysisData['sender_email'] = sender_email
+        
+        addHistoryEntry(emailContent, analysisData, sender_email)
 
     except (ValueError, json.JSONDecodeError) as e:
         print(f"Erro ao processar resposta da IA: {e}")

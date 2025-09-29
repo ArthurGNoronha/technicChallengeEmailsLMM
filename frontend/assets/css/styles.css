@@ -356,6 +356,103 @@ p[style*="color: red;"] {
     font-weight: bold;
 }
 
+.sender-info {
+    margin: 10px 0;
+}
+
+.sender-info input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-family: var(--font-family);
+    font-size: 1rem;
+}
+
+.reply-suggestions li {
+    position: relative;
+}
+
+.reply-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.reply-actions button,
+.reply-actions a {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.copy-btn {
+    background-color: #f8f9fa;
+    border: 1px solid var(--border-color);
+    color: var(--secondary-text-color);
+}
+
+.email-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+.copy-btn:hover {
+    background-color: #e9ecef;
+}
+
+.email-btn:hover {
+    background-color: var(--primary-hover-color);
+}
+
+.reply-actions button:active,
+.reply-actions a:active {
+    transform: translateY(1px);
+}
+
+.email-btn[disabled] {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.email-disabled {
+    background-color: #cccccc !important;
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.email-options {
+    display: flex;
+    gap: 5px;
+}
+
+.email-options .email-btn {
+    padding: 8px 10px;
+    font-size: 0.8em;
+}
+
+.gmail-btn {
+    background-color: #DB4437;
+}
+
+.gmail-btn:hover {
+    background-color: #C53929;
+}
+
+.outlook-btn {
+    background-color: #0078D4;
+}
+
+.outlook-btn:hover {
+    background-color: #006ABC;
+}
+
 .spinner {
     width: 50px;
     height: 50px;

@@ -18,23 +18,25 @@ def initDB():
             classification TEXT NOT NULL,
             summary TEXT NOT NULL,
             keyPoints TEXT NOT NULL,
-            urgency INTEGER NOT NULL
+            urgency INTEGER NOT NULL,
+            sender_email TEXT
         )        
     ''')
     conn.commit()
     conn.close()
     print("Database initialized.")
 
-def addHistoryEntry(content, analysis):
+def addHistoryEntry(content, analysis, sender_email=None):
     conn = getDBConnection()
     conn.execute(
-        'INSERT INTO history (content, classification, summary, keyPoints, urgency) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO history (content, classification, summary, keyPoints, urgency, sender_email) VALUES (?, ?, ?, ?, ?, ?)',
         (
             content,
             analysis.get('type'),
             analysis.get('summary'),
             json.dumps(analysis.get('keyPoints')),
-            analysis.get('urgency')
+            analysis.get('urgency'),
+            sender_email
         )
     )
     conn.commit()
