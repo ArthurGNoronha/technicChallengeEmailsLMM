@@ -1,0 +1,89 @@
+@media (max-width: 850px) {
+    main {
+        margin: 0 15px;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 0;
+    }
+
+    main {
+        margin: 0;
+        border-radius: 0;
+        padding: 15px;
+        box-shadow: none;
+    }
+
+    h1 {
+        font-size: 1.6em;
+    }
+
+    h2 {
+        font-size: 1.3em;
+    }
+
+    #email-input {
+        min-height: 120px;
+    }
+
+    #tone-selector div {
+        display: block;
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+
+    .history-summary {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .history-summary > span:not(.expand-icon):not(.urgency-badge) {
+        flex-basis: 100%;
+        order: 3;
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+
+    .expand-icon {
+        order: 2;
+        margin-left: auto;
+    }
+
+    .edit-classification, .urgency-badge {
+        order: 1;
+    }
+
+    .urgency-badge {
+        margin: 0 5px 0 0;
+    }
+
+    .reply-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .email-options {
+        flex-wrap: wrap;
+    }
+
+    .email-options a {
+        flex-grow: 1;
+        margin-bottom: 5px;
+    }
+
+    .file-selection {
+        flex-wrap: wrap;
+    }
+
+    #file-input {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    #file-name {
+        flex-grow: 0;
+    }
+}
