@@ -1,17 +1,26 @@
 import sqlite3
 import json
+from contextlib import contextmanager
 
 DATABASE_FILE = 'history.db'
 
-def getDBConnection():
+@contextmanager
+def get_db_connection():
     conn = sqlite3.connect(DATABASE_FILE)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
-def initDB():
-    conn = getDBConnection()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS history (
+def init_db():
+    with get_db_connection() as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             content TEXT NOT NULL,
@@ -22,13 +31,11 @@ def initDB():
             sender_email TEXT
         )        
     ''')
-    conn.commit()
-    conn.close()
     print("Database initialized.")
 
-def addHistoryEntry(content, analysis, sender_email=None):
-    conn = getDBConnection()
-    conn.execute(
+def add_history_entry(content, analysis, sender_email=None):
+    with get_db_connection() as conn:
+        conn.execute(
         'INSERT INTO history (content, classification, summary, keyPoints, urgency, sender_email) VALUES (?, ?, ?, ?, ?, ?)',
         (
             content,
@@ -39,38 +46,32 @@ def addHistoryEntry(content, analysis, sender_email=None):
             sender_email
         )
     )
-    conn.commit()
-    conn.close()
 
-def getHistory(limit = 10):
-    conn = getDBConnection()
-    recs = conn.execute('SELECT * FROM history ORDER BY timestamp DESC LIMIT ?', (limit,)).fetchall()
-    conn.close()
+def get_history(limit = 10):
+    with get_db_connection() as conn:
+        recs = conn.execute('SELECT * FROM history ORDER BY timestamp DESC LIMIT ?', (limit,)).fetchall()
 
     return [dict(rec) for rec in recs]
 
-def deleteHistoryEntry(entryId):
-    conn = getDBConnection()
-    conn.execute('DELETE FROM history WHERE id = ?', (entryId,))
-    conn.commit()
-    conn.close()
+def delete_history_entry(entry_id):
+    with get_db_connection() as conn:
+        conn.execute('DELETE FROM history WHERE id = ?', (entry_id,))
 
-def patchHistoryEntry(entryId, updates):
-    conn = getDBConnection()
+def patch_history_entry(entry_id, updates):
+    allowed = {'classification', 'urgency'}
     fields = []
     values = []
     for key, value in updates.items():
-        if key in ['classification', 'urgency']:
+        if key in allowed:
             fields.append(f"{key} = ?")
             values.append(value)
 
-        if not fields:
-            conn.close()
-            return False
-    
+    if not fields:
+        return False
+
     query = f"UPDATE history SET {', '.join(fields)} WHERE id = ?"
-    values.append(entryId)
-    conn.execute(query, tuple(values))
-    conn.commit()
-    conn.close()
+    values.append(entry_id)
+
+    with get_db_connection() as conn:
+        conn.execute(query, tuple(values))
     return True

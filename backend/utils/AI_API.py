@@ -7,7 +7,14 @@ load_dotenv()
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-model = genai.GenerativeModel('models/gemini-2.0-flash')
+generation_config = genai.types.GenerationConfig(
+    response_mime_type='application/json'
+)
+
+model = genai.GenerativeModel(
+    'models/gemini-2.0-flash',
+    generation_config=generation_config
+)
 
 def analyzeEmail(email_content):
     prompt = f"""
@@ -26,38 +33,32 @@ def analyzeEmail(email_content):
     """
     try:
         response = model.generate_content(prompt)
-        text_response = response.text
-        
-        
-        start = text_response.find('{')
-        end = text_response.rfind('}') + 1
-        
-        if start == -1 or end == 0:
-            print("[analyzeEmail] ERRO: Não encontrou estrutura JSON na resposta")
-            return '''
-            {
-                "type": "Produtivo",
-                "summary": "Não foi possível analisar este e-mail automaticamente.",
-                "keyPoints": ["Erro na análise automática. Por favor, revise manualmente."],
-                "urgency": 3
-            }
-            '''
-            
-        json_str = text_response[start:end]
-        
-        try:
-            json.loads(json_str)
-            return text_response
-        except json.JSONDecodeError as e:
-            print(f"[analyzeEmail] ERRO: JSON inválido: {e}")
-            return '''
-            {
-                "type": "Produtivo",
-                "summary": "Não foi possível analisar este e-mail automaticamente.",
-                "keyPoints": ["Erro na análise automática. Por favor, revise manualmente."],
-                "urgency": 3
-            }
-            '''
+                
+        data = json.loads(response.text)
+        if isinstance(data, list) and data:
+            return data[0]
+        return data
+    
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"[analyzeEmail] ERRO ao analisar e-mail: {e}")
+        return {
+            "type": "Produtivo",
+            "summary": "Não foi possível analisar este e-mail automaticamente.",
+            "keyPoints": ["Erro na análise automática. Por favor, revise manualmente."],
+            "urgency": 3
+        }
+    
+    except json.JSONDecodeError as jde:
+        print(f"[analyzeEmail] ERRO JSON inválido: {jde}")
+        return '''
+        {
+            "type": "Produtivo",
+            "summary": "Não foi possível analisar este e-mail automaticamente.",
+            "keyPoints": ["Erro na análise automática. Por favor, revise manualmente."],
+            "urgency": 3
+        }
+        '''
+
     except Exception as e:
         print(f"[analyzeEmail] ERRO ao analisar e-mail: {e}")
         return '''
@@ -71,10 +72,11 @@ def analyzeEmail(email_content):
 
 def generateReply(email_content, type, tone="Profissional"):
     if type == 'Improdutivo':
-        return "Obrigado pela sua mensagem! Agradecemos o seu contato."
+        return ["Obrigado pela sua mensagem! Agradecemos o seu contato."]
+        
     prompt = f"""
-    Com base no e-mail abaixo, gere uma lista de 3 sugestões de respostas curtas e com um tom '{tone}'.
-    Retorne o resultado como um array JSON de strings, e nada mais. Exemplo de formato: ["sugestão 1", "sugestão 2", "sugestão 3"]
+    Com base no e-mail abaixo, gere uma lista de 3 sugestões de respostas curtas com um tom '{tone}'.
+    Retorne o resultado como um array JSON de strings. Exemplo: ["sugestão 1", "sugestão 2", "sugestão 3"]
 
     E-mail:
     ---
@@ -83,17 +85,7 @@ def generateReply(email_content, type, tone="Profissional"):
     """
     try:
         response = model.generate_content(prompt)
-        
-        text_response = response.text
-        start = text_response.find('[')
-        end = text_response.rfind(']') + 1
-        if start == -1 or end == 0:
-            return [text_response.strip()]
-            
-        json_str = text_response[start:end]
-        
-        suggestions = json.loads(json_str)
-        return suggestions
-    except Exception as e:
+        return json.loads(response.text)
+    except (json.JSONDecodeError, Exception) as e:
         print(f"Erro ao gerar resposta: {e}")
-        return None
+        return ["Não foi possível gerar sugestões de resposta."]

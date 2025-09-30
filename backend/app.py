@@ -2,14 +2,14 @@ from flask import Flask, jsonify
 import os
 from routes import api
 from flask_cors import CORS
-from utils.database import initDB
+from utils.database import init_db
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='/')
 CORS(app)
 
 app.register_blueprint(api, url_prefix='/api')
 
-initDB()
+init_db()
 
 @app.route('/<path:path>')
 def serve_static(path):

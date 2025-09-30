@@ -2,8 +2,7 @@ from flask import Blueprint, request, jsonify
 from utils.AI_API import analyzeEmail, generateReply
 from utils.extractor import extractText
 from utils.nlp import preprocessText
-from utils.database import addHistoryEntry, getHistory, deleteHistoryEntry, patchHistoryEntry
-import json
+from utils.database import add_history_entry, get_history, delete_history_entry, patch_history_entry
 
 api = Blueprint('api', __name__)
 
@@ -32,44 +31,27 @@ def handleAnalyze():
         print("[handleAnalyze] ERRO: Nenhum conteúdo fornecido")
         return jsonify({'error': 'No content provided'}), 400
     
-    
-    sender_email = None
-    if 'senderEmail' in request.form and request.form['senderEmail'].strip():
-        sender_email = request.form['senderEmail'].strip()
+    sender_email = request.form.get('senderEmail', '').strip() or None
     
     preprocessedContent = preprocessText(emailContent)
     
-    analysisText = analyzeEmail(preprocessedContent)
+    analysisData = analyzeEmail(preprocessedContent)
     
-    if not analysisText:
+    if not analysisData:
         print("[handleAnalyze] ERRO: Falha na análise do e-mail (resposta vazia)")
         return jsonify({'error': 'Failed to analyze email'}), 500
     
     try:
-        start = analysisText.find('{')
-        end = analysisText.rfind('}') + 1
-        
-        if start == -1 or end == 0:
-            raise ValueError("JSON não encontrado na resposta da IA")
-
-        jsonStr = analysisText[start:end]
-
-        analysisData = json.loads(jsonStr)
-
         analysisData['originalContent'] = emailContent
 
         if sender_email:
             analysisData['sender_email'] = sender_email
         
-        try:
-            addHistoryEntry(emailContent, analysisData, sender_email)
-        except Exception as db_error:
-            print(f"[handleAnalyze] ERRO ao salvar no histórico: {db_error}")
+        add_history_entry(emailContent, analysisData, sender_email)
 
-    except (ValueError, json.JSONDecodeError) as e:
-        return jsonify({'error': 'Formato de resposta da IA inválido.'}), 500
     except Exception as e:
-        return jsonify({'error': f'Erro inesperado: {str(e)}'}), 500
+        print(f"[handleAnalyze] ERRO ao processar ou salvar no histórico: {e}")
+        return jsonify({'error': f'Erro ao processar ou salvar a análise: {str(e)}'}), 500
 
     return jsonify(analysisData)
 
@@ -79,16 +61,16 @@ def handleReply():
     if not data or 'email' not in data or 'type' not in data:
         return jsonify({'error': 'Email and type are required'}), 400
 
-    reply = generateReply(data['email'], data['type'], data['tone'])
-    if not reply:
+    suggestions = generateReply(data['email'], data['type'], data.get('tone', 'Profissional'))
+    if not suggestions:
         return jsonify({'error': 'Failed to generate reply'}), 500
     
-    return jsonify({'reply': reply})
+    return jsonify({'reply': suggestions})
 
 @api.route('/history', methods=['GET'])
 def handleHistory():
     try: 
-        history = getHistory()
+        history = get_history()
         return jsonify(history), 200
     except Exception as e:
         print(f"Erro ao recuperar histórico: {e}")
@@ -97,7 +79,7 @@ def handleHistory():
 @api.route('/history/<int:entryId>', methods=['DELETE'])
 def handleDeleteHistoryEntry(entryId):
     try:
-        deleteHistoryEntry(entryId)
+        delete_history_entry(entryId)
         return jsonify({'message': 'Entry deleted successfully'}), 200
     except Exception as e:
         print(f"Erro ao deletar entrada do histórico: {e}")
@@ -110,7 +92,7 @@ def handlePatchHistoryEntry(entryId):
         return jsonify({'error': 'No data provided'}), 400
 
     try:
-        patchHistoryEntry(entryId, data)
+        patch_history_entry(entryId, data)
         return jsonify({'message': 'Entry updated successfully'}), 200
     except Exception as e:
         print(f"Erro ao atualizar entrada do histórico: {e}")
